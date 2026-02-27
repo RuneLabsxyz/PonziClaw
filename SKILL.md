@@ -58,16 +58,27 @@ python3 scripts/strategy_runner.py mean-reversion
 ### 4) Run strategy and emit calls payload
 
 ```bash
-python3 scripts/strategy_runner.py momentum-scalp --emit-calls out/calls.momentum.json
+python3 scripts/strategy_runner.py momentum-scalp \
+  --emit-calls out/calls.momentum.json \
+  --land-location 1234 \
+  --token-address 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d \
+  --sell-price-wei 1000000000000000000 \
+  --stake-wei 10000000000000000
 ```
 
-`--emit-calls` now uses `manifest_mainnet.json` to resolve the `ponzi_land-actions` contract and generates `buy`/`bid` calls with proper u256 calldata layout.
+`--emit-calls` uses `manifest_mainnet.json` to resolve `ponzi_land-actions` and emits `buy`/`bid` calldata in proper u256 low/high form.
 
-### 5) Execute (only after user approval)
+### 5) Execute with guardrails (only after user approval)
 
 ```bash
-controller execute --file out/calls.momentum.json --json
+python3 scripts/execute_plan.py --calls-file out/calls.momentum.json --confirm
 ```
+
+Guardrails include:
+- active controller session required
+- explicit `--confirm` required
+- empty plans blocked
+- duplicate execution cooldown (default 5 min)
 
 ## Session/auth through Controller CLI
 
@@ -98,6 +109,7 @@ For analytics questions, report:
 - Direct answer first
 - Top rows or summary metrics
 - Data caveats if partial
+- For `closed-pnl`, data comes from `/land-historical/<address>` (closed positions API)
 
 For strategy questions, always report:
 - Current price

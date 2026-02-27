@@ -94,21 +94,12 @@ def _u256_parts(v: int):
     return str(low), str(high)
 
 
-def build_calls_from_manifest(rec: Dict[str, Any]) -> Dict[str, Any]:
+def build_calls_from_manifest(rec: Dict[str, Any], land_location: int, token_address: str, sell_price_wei: int, stake_wei: int) -> Dict[str, Any]:
     if rec["action"] == "hold":
         return {"calls": []}
 
-    cfg = load_tokens_config()
-    default_token = cfg.get("mainCurrencyAddress") or os.getenv("PONZI_TOKEN_ADDRESS", "0x0")
-    land_location = int(os.getenv("PONZI_DEFAULT_LAND_LOCATION", "1"))
-
-    # Basic starter values; can be overridden per operator policy.
-    sell_price_wei = int(os.getenv("PONZI_DEFAULT_SELL_PRICE_WEI", "1000000000000000000"))
-    stake_wei = int(os.getenv("PONZI_DEFAULT_STAKE_WEI", "10000000000000000"))
-
     sell_low, sell_high = _u256_parts(sell_price_wei)
     stake_low, stake_high = _u256_parts(stake_wei)
-
     entrypoint = "buy" if rec["action"] == "buy" else "bid"
 
     return {
@@ -118,7 +109,7 @@ def build_calls_from_manifest(rec: Dict[str, Any]) -> Dict[str, Any]:
                 "entrypoint": entrypoint,
                 "calldata": [
                     str(land_location),
-                    default_token,
+                    token_address,
                     sell_low,
                     sell_high,
                     stake_low,
@@ -133,6 +124,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("strategy", choices=["momentum-scalp", "mean-reversion"])
     ap.add_argument("--emit-calls", help="Write calls JSON file for controller execute")
+    ap.add_argument("--land-location", type=int, help="Target land location (required when emitting non-hold calls)")
+    ap.add_argument("--token-address", help="Token address for sale/payment leg")
+    ap.add_argument("--sell-price-wei", type=int, default=1000000000000000000)
+    ap.add_argument("--stake-wei", type=int, default=10000000000000000)
     args = ap.parse_args()
 
     snap = run_snapshot()
@@ -156,7 +151,18 @@ def main():
     }
 
     if args.emit_calls:
-        calls = build_calls_from_manifest(rec)
+        cfg = load_tokens_config()
+        token_address = args.token_address or cfg.get("mainCurrencyAddress")
+        if rec["action"] != "hold" and args.land_location is None:
+            raise SystemExit("--land-location is required when action is buy/sell and emitting calls")
+
+        calls = build_calls_from_manifest(
+            rec,
+            land_location=(args.land_location or 1),
+            token_address=token_address,
+            sell_price_wei=args.sell_price_wei,
+            stake_wei=args.stake_wei,
+        )
         out_path = Path(args.emit_calls)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
