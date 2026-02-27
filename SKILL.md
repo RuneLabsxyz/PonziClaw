@@ -119,7 +119,17 @@ python3 scripts/avnu_swap.py swap \
 python3 scripts/avnu_swap.py swap ... --execute --confirm
 ```
 
-### 9) Generate reports (daily or on-demand)
+### 9) ASCII land neighborhood map (3x3 with center + tax info)
+
+```bash
+python3 scripts/land_map_ascii.py --location 31610
+# or
+python3 scripts/land_map_ascii.py --x 122 --y 123
+```
+
+Output shows center land + 8 neighbors with level, sell price/token, and raw accumulated tax fee.
+
+### 10) Generate reports (daily or on-demand)
 
 ```bash
 python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
