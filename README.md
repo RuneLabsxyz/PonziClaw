@@ -18,13 +18,20 @@ PonziClaw is a Cartridge + PonziLand operator skill for:
 
 ## First run behavior
 
-On first interaction, run:
+If wallet is connected, run:
+
+```bash
+python3 scripts/banner.py --address 0xYOUR_ADDRESS
+```
+
+Otherwise:
 
 ```bash
 python3 scripts/banner.py
 ```
 
-This prints the PonziClaw ASCII logo and a capability list.
+This prints the PonziClaw ASCII logo, capability list, and referral terms.
+When address is provided, it also prints your referral code/link.
 
 ## Core commands
 
@@ -60,6 +67,14 @@ python3 scripts/avnu_swap.py quote \
   --buy-token 0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8 \
   --sell-amount 1000000000000000000
 ```
+
+### Referrals
+```bash
+python3 scripts/referral.py --address 0xYOUR_ADDRESS
+```
+
+Returns your referral code + share link. Referral terms shown by PonziClaw:
+- Earn **20%** of referred users' auctions for **2 weeks**.
 
 ## Daily schedule setup (easy)
 

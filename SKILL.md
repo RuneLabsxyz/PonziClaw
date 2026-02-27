@@ -6,12 +6,19 @@ description: Use Cartridge Controller CLI plus PonziLand APIs to fetch live mark
 # PonziClaw
 
 First-interaction behavior:
-1. Print PonziClaw ASCII logo + capabilities list using:
+1. If wallet/account is known, print logo + capabilities + referral info using:
+```bash
+python3 scripts/banner.py --address 0xYOUR_ADDRESS
+```
+If wallet is unknown, run:
 ```bash
 python3 scripts/banner.py
 ```
-2. Ask user for wallet/account address and preferred daily report time.
-3. Offer one-command daily schedule setup.
+2. In the "what can you do" response, include referral terms:
+- "Earn 20% of referred users' auctions for 2 weeks"
+- If wallet is connected, include their referral code/link.
+3. Ask user for preferred daily report time.
+4. Offer one-command daily schedule setup.
 
 Use this skill to operate a PonziLand bot with seven capabilities:
 1. Read live data from PonziLand endpoints (price + Torii SQL)
@@ -157,7 +164,15 @@ python3 scripts/pnl_report.py \
   --mock-prices references/mock_prices.json
 ```
 
-### 11) Easy daily schedule setup (starter)
+### 11) Referral code/link
+
+```bash
+python3 scripts/referral.py --address 0xYOUR_ADDRESS
+```
+
+Returns referral code + `https://play.ponzi.land/r/<CODE>`.
+
+### 12) Easy daily schedule setup (starter)
 
 ```bash
 python3 scripts/setup_daily_schedule.py --account 0xYOUR_ADDRESS --time-utc 09:00
@@ -165,7 +180,7 @@ python3 scripts/setup_daily_schedule.py --account 0xYOUR_ADDRESS --time-utc 09:0
 
 This prints a ready-to-use OpenClaw `cron.add` job JSON for daily updates.
 
-### 12) Generate reports (daily or on-demand)
+### 13) Generate reports (daily or on-demand)
 
 ```bash
 python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
