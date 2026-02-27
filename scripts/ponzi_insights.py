@@ -7,6 +7,7 @@ import urllib.request
 from ponzi_manifest import token_symbol
 
 TORII = os.getenv("PUBLIC_DOJO_TORII_URL", "https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii").rstrip("/")
+PONZI_API = os.getenv("PUBLIC_PONZI_API_URL", "https://api.runelabs.xyz/ponziland-mainnet-temp/api").rstrip("/")
 
 
 def torii_sql(query: str):
@@ -16,6 +17,12 @@ def torii_sql(query: str):
         headers={"Content-Type": "text/plain", "User-Agent": "PonziClaw/0.1"},
         method="POST",
     )
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def fetch_json(url: str):
+    req = urllib.request.Request(url, headers={"User-Agent": "PonziClaw/0.1"})
     with urllib.request.urlopen(req, timeout=25) as r:
         return json.loads(r.read().decode("utf-8"))
 
@@ -63,42 +70,29 @@ WHERE
 """.strip()
 
 
-def q_closed_pnl(account: str, limit: int):
-    # Approximation by location: sum sells - sum buys where both sides exist.
-    return f"""
-WITH bought AS (
-  SELECT
-    (em.data ->> '$.land_location') AS location,
-    (em.data ->> '$.token_used') AS token,
-    SUM(CAST((em.data ->> '$.sold_price') AS INTEGER)) AS total_buy
-  FROM event_messages_historical em
-  LEFT JOIN models m ON em.model_id = m.id
-  WHERE m.name LIKE '%LandBoughtEvent%'
-    AND (em.data ->> '$.buyer') = '{account}'
-  GROUP BY (em.data ->> '$.land_location'), (em.data ->> '$.token_used')
-),
-sold AS (
-  SELECT
-    (em.data ->> '$.land_location') AS location,
-    (em.data ->> '$.token_used') AS token,
-    SUM(CAST((em.data ->> '$.sold_price') AS INTEGER)) AS total_sell
-  FROM event_messages_historical em
-  LEFT JOIN models m ON em.model_id = m.id
-  WHERE m.name LIKE '%LandBoughtEvent%'
-    AND (em.data ->> '$.seller') = '{account}'
-  GROUP BY (em.data ->> '$.land_location'), (em.data ->> '$.token_used')
-)
-SELECT
-  sold.location,
-  sold.token,
-  bought.total_buy,
-  sold.total_sell,
-  (sold.total_sell - bought.total_buy) AS pnl
-FROM sold
-JOIN bought ON sold.location = bought.location AND sold.token = bought.token
-ORDER BY pnl DESC
-LIMIT {limit}
-""".strip()
+def closed_pnl_from_api(account: str, limit: int):
+    formatted = account
+    if formatted.startswith("0x0") and len(formatted) == 66:
+        formatted = "0x" + formatted[3:]
+
+    positions = fetch_json(f"{PONZI_API}/land-historical/{formatted}")
+    out = []
+    for p in positions[:limit]:
+        token = p.get("sale_token_used") or p.get("buy_token_used")
+        out.append(
+            {
+                "id": p.get("id"),
+                "land_location": p.get("land_location"),
+                "close_date": p.get("close_date"),
+                "close_reason": p.get("close_reason"),
+                "token": token,
+                "token_symbol": token_symbol(token) if token else None,
+                "buy_cost_token": p.get("buy_cost_token"),
+                "sale_revenue_token": p.get("sale_revenue_token"),
+                "net_profit_token": p.get("net_profit_token"),
+            }
+        )
+    return out
 
 
 def main():
@@ -111,25 +105,28 @@ def main():
     if args.command in {"land-health", "closed-pnl"} and not args.account:
         raise SystemExit("--account is required for land-health and closed-pnl")
 
-    if args.command == "most-used-token":
-        q = q_most_used_token(args.limit)
-    elif args.command == "last-drops":
-        q = q_last_drops(args.limit)
-    elif args.command == "land-health":
-        q = q_account_land_health(args.account)
-    else:
-        q = q_closed_pnl(args.account, args.limit)
-
     try:
-        data = torii_sql(q)
-        if args.command in {"most-used-token", "closed-pnl"} and isinstance(data, list):
-            for row in data:
-                token = row.get("token")
-                if token:
-                    row["token_symbol"] = token_symbol(token)
+        if args.command == "most-used-token":
+            q = q_most_used_token(args.limit)
+            data = torii_sql(q)
+            if isinstance(data, list):
+                for row in data:
+                    token = row.get("token")
+                    if token:
+                        row["token_symbol"] = token_symbol(token)
+        elif args.command == "last-drops":
+            q = q_last_drops(args.limit)
+            data = torii_sql(q)
+        elif args.command == "land-health":
+            q = q_account_land_health(args.account)
+            data = torii_sql(q)
+        else:
+            q = None
+            data = closed_pnl_from_api(args.account, args.limit)
+
         print(json.dumps({"ok": True, "command": args.command, "data": data}, indent=2))
     except Exception as e:
-        print(json.dumps({"ok": False, "command": args.command, "error": str(e), "query": q}, indent=2))
+        print(json.dumps({"ok": False, "command": args.command, "error": str(e), "query": q if 'q' in locals() else None}, indent=2))
 
 
 if __name__ == "__main__":
