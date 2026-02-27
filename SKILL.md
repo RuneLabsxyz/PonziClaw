@@ -188,6 +188,16 @@ python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
 
 Use this report to send daily updates, or run on user request.
 
+## Cartridge dependency note
+
+PonziClaw uses Cartridge Controller execution/session primitives.
+Reference docs:
+- https://github.com/cartridge-gg/controller-cli/blob/main/LLM_USAGE.md
+- https://github.com/cartridge-gg/controller-cli
+
+Local installed Cartridge skill reference:
+- `/home/server/clawd/skills/cartridge/SKILL.md`
+
 ## Session/auth through Controller CLI
 
 Check status:

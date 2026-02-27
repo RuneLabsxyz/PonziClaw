@@ -93,3 +93,12 @@ Then use the printed JSON with `cron.add`.
 - AVNU: `https://starknet.api.avnu.fi`
 
 See `.env.example` for all overrides.
+
+## Upstream references
+
+PonziClaw relies on Cartridge Controller flows. Keep these docs handy:
+- Controller CLI LLM usage: https://github.com/cartridge-gg/controller-cli/blob/main/LLM_USAGE.md
+- Controller CLI repo: https://github.com/cartridge-gg/controller-cli
+
+In this workspace, the local Cartridge skill is also installed at:
+- `/home/server/clawd/skills/cartridge/SKILL.md`
