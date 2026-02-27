@@ -5,11 +5,13 @@ description: Use Cartridge Controller CLI plus PonziLand APIs to fetch live mark
 
 # PonziClaw
 
-Use this skill to operate a PonziLand bot with four capabilities:
+Use this skill to operate a PonziLand bot with six capabilities:
 1. Read live data from PonziLand endpoints (price + Torii SQL)
 2. Answer analytics questions (token usage, drops, land health, closed PnL)
-3. Propose strategy actions from current data
-4. Execute approved actions through `controller` CLI
+3. Save user preferences (risk profile, mode, reporting cadence)
+4. Propose multiple strategy options from current data
+5. Build guarded execution plans for approved strategies
+6. Generate daily or on-demand portfolio/market reports
 
 ## Required workflow
 
@@ -48,14 +50,29 @@ python3 scripts/ponzi_insights.py land-health --account 0xYOUR_ADDRESS
 python3 scripts/ponzi_insights.py closed-pnl --account 0xYOUR_ADDRESS --limit 20
 ```
 
-### 3) Run strategy (plan only)
+### 3) Save/inspect user preferences
+
+```bash
+python3 scripts/user_prefs.py show
+python3 scripts/user_prefs.py set --strategy-profile balanced --mode plan-only --max-daily-risk-pct 5
+python3 scripts/user_prefs.py set --reporting-cadence daily --reporting-time-utc 09:00 --only-material-changes true
+```
+
+### 4) Propose multiple strategies
+
+```bash
+python3 scripts/strategy_advisor.py --profile balanced
+python3 scripts/strategy_advisor.py --profile conservative
+```
+
+### 5) Run chosen strategy (plan only)
 
 ```bash
 python3 scripts/strategy_runner.py momentum-scalp
 python3 scripts/strategy_runner.py mean-reversion
 ```
 
-### 4) Run strategy and emit calls payload
+### 6) Run strategy and emit calls payload
 
 ```bash
 python3 scripts/strategy_runner.py momentum-scalp \
@@ -68,7 +85,7 @@ python3 scripts/strategy_runner.py momentum-scalp \
 
 `--emit-calls` uses `manifest_mainnet.json` to resolve `ponzi_land-actions` and emits `buy`/`bid` calldata in proper u256 low/high form.
 
-### 5) Execute with guardrails (only after user approval)
+### 7) Execute with guardrails (only after user approval)
 
 ```bash
 python3 scripts/execute_plan.py --calls-file out/calls.momentum.json --confirm
@@ -79,6 +96,14 @@ Guardrails include:
 - explicit `--confirm` required
 - empty plans blocked
 - duplicate execution cooldown (default 5 min)
+
+### 8) Generate reports (daily or on-demand)
+
+```bash
+python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
+```
+
+Use this report to send daily updates, or run on user request.
 
 ## Session/auth through Controller CLI
 
