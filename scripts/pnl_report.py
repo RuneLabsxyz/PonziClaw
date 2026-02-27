@@ -26,9 +26,36 @@ def parse_dec(v):
     if s == "":
         return Decimal("0")
     try:
+        if s.startswith("0x"):
+            return Decimal(int(s, 16))
         return Decimal(s)
-    except InvalidOperation:
+    except (InvalidOperation, ValueError):
         return Decimal("0")
+
+
+def to_human_amount(raw_amount: Decimal, decimals: int) -> Decimal:
+    q = Decimal(10) ** Decimal(decimals)
+    if q == 0:
+        return raw_amount
+    return raw_amount / q
+
+
+def normalize_amount(value, decimals: int):
+    """
+    Return (raw_decimal, human_decimal).
+    - If value looks decimal (contains '.' or scientific notation), treat as already human.
+    - Else treat as raw integer units and convert using decimals.
+    """
+    s = "" if value is None else str(value).strip().lower()
+    raw = parse_dec(value)
+    is_human_like = ("." in s) or ("e" in s and not s.startswith("0x"))
+    if is_human_like:
+        human = raw
+        raw_units = raw * (Decimal(10) ** Decimal(decimals))
+    else:
+        human = to_human_amount(raw, decimals)
+        raw_units = raw
+    return raw_units, human
 
 
 def load_positions(account: str = None, mock_file: str = None):
@@ -69,6 +96,7 @@ def summarize(positions, price_map):
     token_rows = defaultdict(lambda: {
         "token_address": None,
         "token_symbol": None,
+        "decimals": 18,
         "positions": 0,
         "inflow_token": Decimal("0"),
         "outflow_token": Decimal("0"),
@@ -95,10 +123,11 @@ def summarize(positions, price_map):
         token = (p.get("sale_token_used") or p.get("buy_token_used") or "").lower()
         meta = token_meta.get(token, {})
         symbol = meta.get("symbol") or token or "UNKNOWN"
+        decimals = int(meta.get("decimals", 18))
 
-        buy_token = parse_dec(p.get("buy_cost_token"))
-        sale_token = parse_dec(p.get("sale_revenue_token"))
-        net_token = parse_dec(p.get("net_profit_token"))
+        buy_token_raw, buy_token = normalize_amount(p.get("buy_cost_token"), decimals)
+        sale_token_raw, sale_token = normalize_amount(p.get("sale_revenue_token"), decimals)
+        net_token_raw, net_token = normalize_amount(p.get("net_profit_token"), decimals)
         net_usd = p.get("net_profit_usd")
         close_reason = p.get("close_reason")
         is_closed = bool(close_reason)
@@ -111,6 +140,7 @@ def summarize(positions, price_map):
         row = token_rows[symbol]
         row["token_address"] = token
         row["token_symbol"] = symbol
+        row["decimals"] = decimals
         row["positions"] += 1
         row["inflow_token"] += sale_token
         row["outflow_token"] += buy_token
@@ -143,9 +173,13 @@ def summarize(positions, price_map):
             "close_reason": close_reason,
             "token_symbol": symbol,
             "token_address": token,
+            "decimals": decimals,
             "buy_cost_token": str(buy_token),
             "sale_revenue_token": str(sale_token),
             "net_profit_token": str(net_token),
+            "buy_cost_token_raw": str(buy_token_raw),
+            "sale_revenue_token_raw": str(sale_token_raw),
+            "net_profit_token_raw": str(net_token_raw),
             "net_profit_usd": str(net_usd_val),
             "is_closed": is_closed,
         })
@@ -155,6 +189,7 @@ def summarize(positions, price_map):
         token_list.append({
             "token_symbol": r["token_symbol"],
             "token_address": r["token_address"],
+            "decimals": r["decimals"],
             "positions": r["positions"],
             "inflow_token": str(r["inflow_token"]),
             "outflow_token": str(r["outflow_token"]),
