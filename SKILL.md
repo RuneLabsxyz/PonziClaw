@@ -5,10 +5,11 @@ description: Use Cartridge Controller CLI plus PonziLand APIs to fetch live mark
 
 # PonziClaw
 
-Use this skill to operate a PonziLand bot with three capabilities:
+Use this skill to operate a PonziLand bot with four capabilities:
 1. Read live data from PonziLand endpoints (price + Torii SQL)
-2. Propose strategy actions from current data
-3. Execute approved actions through `controller` CLI
+2. Answer analytics questions (token usage, drops, land health, closed PnL)
+3. Propose strategy actions from current data
+4. Execute approved actions through `controller` CLI
 
 ## Required workflow
 
@@ -30,20 +31,29 @@ Optional env overrides:
 - `PUBLIC_PONZI_API_URL` (default `https://play.ponzis.fun`)
 - `PUBLIC_DOJO_TORII_URL` (default `https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii`)
 
-### 2) Run strategy (plan only)
+### 2) Query analytics Q&A
+
+```bash
+python3 scripts/ponzi_insights.py most-used-token --limit 5
+python3 scripts/ponzi_insights.py last-drops --limit 10
+python3 scripts/ponzi_insights.py land-health --account 0xYOUR_ADDRESS
+python3 scripts/ponzi_insights.py closed-pnl --account 0xYOUR_ADDRESS --limit 20
+```
+
+### 3) Run strategy (plan only)
 
 ```bash
 python3 scripts/strategy_runner.py momentum-scalp
 python3 scripts/strategy_runner.py mean-reversion
 ```
 
-### 3) Run strategy and emit calls payload
+### 4) Run strategy and emit calls payload
 
 ```bash
 python3 scripts/strategy_runner.py momentum-scalp --emit-calls out/calls.momentum.json
 ```
 
-### 4) Execute (only after user approval)
+### 5) Execute (only after user approval)
 
 ```bash
 controller execute --file out/calls.momentum.json --json
@@ -74,7 +84,12 @@ Read details in `references/strategies.md`.
 
 ## Output format to user
 
-Always report:
+For analytics questions, report:
+- Direct answer first
+- Top rows or summary metrics
+- Data caveats if partial
+
+For strategy questions, always report:
 - Current price
 - Signal + confidence (0-100)
 - Suggested action (buy/sell/hold)
