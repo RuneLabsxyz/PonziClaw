@@ -98,6 +98,12 @@ Guardrails include:
 - empty plans blocked
 - duplicate execution cooldown (default 5 min)
 
+Execution fallback policy for land buys:
+- If execute fails with gas-cap/validation errors (e.g. `Max gas amount is too high`), do **not** spam retries on the same land.
+- Immediately try a different candidate land (usually cheaper/simpler) from the same strategy bucket.
+- Use one-call buy attempts first (`buy` only), then proceed sequentially to next land on failure.
+- Report each attempt succinctly: `SUCCESS <loc>` or `BLOCKED <loc> <reason>`.
+
 ### 8) Native AVNU swap (quote/build/execute)
 
 ```bash
