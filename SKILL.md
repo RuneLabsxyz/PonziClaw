@@ -5,13 +5,14 @@ description: Use Cartridge Controller CLI plus PonziLand APIs to fetch live mark
 
 # PonziClaw
 
-Use this skill to operate a PonziLand bot with six capabilities:
+Use this skill to operate a PonziLand bot with seven capabilities:
 1. Read live data from PonziLand endpoints (price + Torii SQL)
 2. Answer analytics questions (token usage, drops, land health, closed PnL)
 3. Save user preferences (risk profile, mode, reporting cadence)
 4. Propose multiple strategy options from current data
 5. Build guarded execution plans for approved strategies
-6. Generate daily or on-demand portfolio/market reports
+6. Execute native AVNU token swaps (quote/build/optional execute)
+7. Generate daily or on-demand portfolio/market reports
 
 ## Required workflow
 
@@ -97,7 +98,28 @@ Guardrails include:
 - empty plans blocked
 - duplicate execution cooldown (default 5 min)
 
-### 8) Generate reports (daily or on-demand)
+### 8) Native AVNU swap (quote/build/execute)
+
+```bash
+# quote STRK -> USDC.e
+python3 scripts/avnu_swap.py quote \
+  --sell-token 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d \
+  --buy-token 0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8 \
+  --sell-amount 1000000000000000000
+
+# one-shot build calls (and optionally execute)
+python3 scripts/avnu_swap.py swap \
+  --sell-token 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d \
+  --buy-token 0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8 \
+  --sell-amount 1000000000000000000 \
+  --taker-address 0xYOUR_ADDRESS \
+  --out out/calls.swap.json
+
+# execute only after explicit approval
+python3 scripts/avnu_swap.py swap ... --execute --confirm
+```
+
+### 9) Generate reports (daily or on-demand)
 
 ```bash
 python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
