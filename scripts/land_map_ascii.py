@@ -93,37 +93,47 @@ WHERE location IN ({loc_csv})
 
     tokens = token_map_by_address()
 
-    print(f"Center: ({cx},{cy}) loc={to_location(cx, cy)}")
-    print("Legend: [C]=center | L0/L1/L2 level | tax=accumulated_taxes_fee(raw)\n")
+    print(f"Center land: loc={to_location(cx, cy)} => ({cx},{cy})")
+    print("Legend: C=center, L0/L1/L2=level, tax=accumulated_taxes_fee(raw)\n")
+
+    CELL_W = 44
+
+    def mk_cell(xx, yy):
+        if xx < 0 or yy < 0 or xx > 255 or yy > 255:
+            return ["out", "", ""]
+
+        loc = to_location(xx, yy)
+        land = land_by_loc.get(loc)
+        stake = stake_by_loc.get(loc)
+        prefix = "C" if (xx == cx and yy == cy) else " "
+
+        line1 = f"{prefix} ({xx:03},{yy:03}) loc={loc}"
+        if not land:
+            return [line1, "empty", ""]
+
+        token_addr = str(land.get("token_used", "")).lower()
+        tok = tokens.get(token_addr, {})
+        sym = tok.get("symbol", token_addr[:6])
+        dec = int(tok.get("decimals", 18))
+        price = format_price(land.get("sell_price", "0x0"), dec)
+        lvl = level_short(str(land.get("level", "?")))
+        if stake:
+            t = str(stake.get("accumulated_taxes_fee", "0") or "0")
+            tax_raw = int(t, 16) if t.startswith("0x") else int(t)
+        else:
+            tax_raw = 0
+        line2 = f"{lvl} {price}{sym}"
+        line3 = f"tax={tax_raw}"
+        return [line1, line2, line3]
+
+    hsep = "+" + "+".join(["-" * CELL_W] * 3) + "+"
 
     for yy in range(cy - 1, cy + 2):
-        row_parts = []
-        for xx in range(cx - 1, cx + 2):
-            if xx < 0 or yy < 0 or xx > 255 or yy > 255:
-                row_parts.append("(out)")
-                continue
-            loc = to_location(xx, yy)
-            land = land_by_loc.get(loc)
-            stake = stake_by_loc.get(loc)
-
-            prefix = "[C]" if (xx == cx and yy == cy) else "[ ]"
-            if not land:
-                cell = f"{prefix}{xx:03},{yy:03} empty"
-            else:
-                token_addr = str(land.get("token_used", "")).lower()
-                tok = tokens.get(token_addr, {})
-                sym = tok.get("symbol", token_addr[:6])
-                dec = int(tok.get("decimals", 18))
-                price = format_price(land.get("sell_price", "0x0"), dec)
-                lvl = level_short(str(land.get("level", "?")))
-                if stake:
-                    t = str(stake.get("accumulated_taxes_fee", "0") or "0")
-                    tax_raw = int(t, 16) if t.startswith("0x") else int(t)
-                else:
-                    tax_raw = 0
-                cell = f"{prefix}{xx:03},{yy:03} {lvl} {price}{sym} tax={tax_raw}"
-            row_parts.append(cell)
-        print(" | ".join(row_parts))
+        row_cells = [mk_cell(xx, yy) for xx in range(cx - 1, cx + 2)]
+        print(hsep)
+        for i in range(3):
+            print("|" + "|".join(f" {c[i]:<{CELL_W-2}} " for c in row_cells) + "|")
+    print(hsep)
 
 
 if __name__ == "__main__":
