@@ -5,6 +5,14 @@ description: Use Cartridge Controller CLI plus PonziLand APIs to fetch live mark
 
 # PonziClaw
 
+First-interaction behavior:
+1. Print PonziClaw ASCII logo + capabilities list using:
+```bash
+python3 scripts/banner.py
+```
+2. Ask user for wallet/account address and preferred daily report time.
+3. Offer one-command daily schedule setup.
+
 Use this skill to operate a PonziLand bot with seven capabilities:
 1. Read live data from PonziLand endpoints (price + Torii SQL)
 2. Answer analytics questions (token usage, drops, land health, closed PnL)
@@ -149,7 +157,15 @@ python3 scripts/pnl_report.py \
   --mock-prices references/mock_prices.json
 ```
 
-### 11) Generate reports (daily or on-demand)
+### 11) Easy daily schedule setup (starter)
+
+```bash
+python3 scripts/setup_daily_schedule.py --account 0xYOUR_ADDRESS --time-utc 09:00
+```
+
+This prints a ready-to-use OpenClaw `cron.add` job JSON for daily updates.
+
+### 12) Generate reports (daily or on-demand)
 
 ```bash
 python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
