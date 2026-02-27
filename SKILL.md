@@ -27,9 +27,17 @@ Use this skill to operate a PonziLand bot with four capabilities:
 python3 scripts/ponzi_api.py snapshot
 ```
 
+Default mainnet wiring in this skill:
+- `PUBLIC_PONZI_API_URL=https://api.runelabs.xyz/ponziland-mainnet-temp/api`
+- `PUBLIC_DOJO_TORII_URL=https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii`
+- `references/mainnet.tokens.json` (copied from PonziLand `client/data/mainnet.json`)
+- `references/manifest_mainnet.json` (copied from PonziLand `contracts/manifest_mainnet.json`)
+
 Optional env overrides:
-- `PUBLIC_PONZI_API_URL` (default `https://play.ponzis.fun`)
-- `PUBLIC_DOJO_TORII_URL` (default `https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii`)
+- `PUBLIC_PONZI_API_URL`
+- `PUBLIC_DOJO_TORII_URL`
+- `PONZI_TOKENS_CONFIG`
+- `PONZI_MANIFEST_PATH`
 
 ### 2) Query analytics Q&A
 
@@ -52,6 +60,8 @@ python3 scripts/strategy_runner.py mean-reversion
 ```bash
 python3 scripts/strategy_runner.py momentum-scalp --emit-calls out/calls.momentum.json
 ```
+
+`--emit-calls` now uses `manifest_mainnet.json` to resolve the `ponzi_land-actions` contract and generates `buy`/`bid` calls with proper u256 calldata layout.
 
 ### 5) Execute (only after user approval)
 

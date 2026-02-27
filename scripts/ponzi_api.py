@@ -5,7 +5,7 @@ import sys
 import urllib.request
 import urllib.parse
 
-PONZI_API = os.getenv("PUBLIC_PONZI_API_URL", "https://play.ponzis.fun").rstrip("/")
+PONZI_API = os.getenv("PUBLIC_PONZI_API_URL", "https://api.runelabs.xyz/ponziland-mainnet-temp/api").rstrip("/")
 TORII = os.getenv("PUBLIC_DOJO_TORII_URL", "https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii").rstrip("/")
 
 
@@ -15,12 +15,17 @@ def fetch_json(url: str):
         return json.loads(r.read().decode("utf-8"))
 
 
-def post_json(url: str, payload: dict):
-    data = json.dumps(payload).encode("utf-8")
+def post_json(url: str, payload):
+    if isinstance(payload, dict):
+        data = json.dumps(payload).encode("utf-8")
+        content_type = "application/json"
+    else:
+        data = str(payload).encode("utf-8")
+        content_type = "text/plain"
     req = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json", "User-Agent": "PonziClaw/0.1"},
+        headers={"Content-Type": content_type, "User-Agent": "PonziClaw/0.1"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -39,9 +44,9 @@ def cmd_torii_flow():
     # Conservative generic query placeholder; callers can override by editing.
     sql = os.getenv(
         "PONZI_FLOW_SQL",
-        "SELECT COUNT(*) AS tx_count FROM events LIMIT 1",
+        "SELECT COUNT(*) AS tx_count FROM event_messages_historical LIMIT 1",
     )
-    print(json.dumps(post_json(f"{TORII}/sql", {"query": sql}), indent=2))
+    print(json.dumps(post_json(f"{TORII}/sql", sql), indent=2))
 
 
 def cmd_snapshot():
@@ -52,8 +57,8 @@ def cmd_snapshot():
         out["errors"].append(f"price_error: {e}")
 
     try:
-        sql = os.getenv("PONZI_FLOW_SQL", "SELECT COUNT(*) AS tx_count FROM events LIMIT 1")
-        out["flow"] = post_json(f"{TORII}/sql", {"query": sql})
+        sql = os.getenv("PONZI_FLOW_SQL", "SELECT COUNT(*) AS tx_count FROM event_messages_historical LIMIT 1")
+        out["flow"] = post_json(f"{TORII}/sql", sql)
     except Exception as e:
         out["errors"].append(f"flow_error: {e}")
 

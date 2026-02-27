@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any
 
+from ponzi_manifest import actions_contract_address, load_tokens_config
+
 
 def run_snapshot() -> Dict[str, Any]:
     proc = subprocess.run(
@@ -27,6 +29,20 @@ def extract_price(snapshot: Dict[str, Any]) -> float:
                     return float(p[key])
                 except Exception:
                     pass
+    if isinstance(p, list):
+        cfg = load_tokens_config()
+        main_addr = str(cfg.get("mainCurrencyAddress", "")).lower()
+        for item in p:
+            if str(item.get("address", "")).lower() == main_addr:
+                try:
+                    return float(item.get("ratio"))
+                except Exception:
+                    pass
+        if p:
+            try:
+                return float(p[0].get("ratio"))
+            except Exception:
+                pass
     if isinstance(p, (int, float)):
         return float(p)
     return float("nan")
@@ -71,16 +87,42 @@ def decide(strategy: str, price: float, flow_strength: float) -> Dict[str, Any]:
     }
 
 
-def build_calls_placeholder(rec: Dict[str, Any]) -> Dict[str, Any]:
-    # Placeholder calls file. Replace contract/entrypoint/calldata with actual PonziLand methods.
+def _u256_parts(v: int):
+    v = max(0, int(v))
+    low = v & ((1 << 128) - 1)
+    high = v >> 128
+    return str(low), str(high)
+
+
+def build_calls_from_manifest(rec: Dict[str, Any]) -> Dict[str, Any]:
+    if rec["action"] == "hold":
+        return {"calls": []}
+
+    cfg = load_tokens_config()
+    default_token = cfg.get("mainCurrencyAddress") or os.getenv("PONZI_TOKEN_ADDRESS", "0x0")
+    land_location = int(os.getenv("PONZI_DEFAULT_LAND_LOCATION", "1"))
+
+    # Basic starter values; can be overridden per operator policy.
+    sell_price_wei = int(os.getenv("PONZI_DEFAULT_SELL_PRICE_WEI", "1000000000000000000"))
+    stake_wei = int(os.getenv("PONZI_DEFAULT_STAKE_WEI", "10000000000000000"))
+
+    sell_low, sell_high = _u256_parts(sell_price_wei)
+    stake_low, stake_high = _u256_parts(stake_wei)
+
+    entrypoint = "buy" if rec["action"] == "buy" else "bid"
+
     return {
         "calls": [
             {
-                "contractAddress": os.getenv("PONZI_CONTRACT_ADDRESS", "0x0"),
-                "entrypoint": os.getenv("PONZI_ENTRYPOINT", "play"),
+                "contractAddress": actions_contract_address(),
+                "entrypoint": entrypoint,
                 "calldata": [
-                    rec["action"],
-                    str(rec["size_pct"]),
+                    str(land_location),
+                    default_token,
+                    sell_low,
+                    sell_high,
+                    stake_low,
+                    stake_high,
                 ],
             }
         ]
@@ -114,7 +156,7 @@ def main():
     }
 
     if args.emit_calls:
-        calls = build_calls_placeholder(rec)
+        calls = build_calls_from_manifest(rec)
         out_path = Path(args.emit_calls)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:

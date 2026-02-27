@@ -4,6 +4,8 @@ import json
 import os
 import urllib.request
 
+from ponzi_manifest import token_symbol
+
 TORII = os.getenv("PUBLIC_DOJO_TORII_URL", "https://api.cartridge.gg/x/ponziland-mainnet-world-new/torii").rstrip("/")
 
 
@@ -120,6 +122,11 @@ def main():
 
     try:
         data = torii_sql(q)
+        if args.command in {"most-used-token", "closed-pnl"} and isinstance(data, list):
+            for row in data:
+                token = row.get("token")
+                if token:
+                    row["token_symbol"] = token_symbol(token)
         print(json.dumps({"ok": True, "command": args.command, "data": data}, indent=2))
     except Exception as e:
         print(json.dumps({"ok": False, "command": args.command, "error": str(e), "query": q}, indent=2))
