@@ -129,7 +129,21 @@ python3 scripts/land_map_ascii.py --x 122 --y 123
 
 Output shows center land + 8 neighbors with level, sell price/token, and raw accumulated tax fee.
 
-### 10) Generate reports (daily or on-demand)
+### 10) Structured PnL report (token losses/gains + USD)
+
+```bash
+python3 scripts/pnl_report.py --account 0xYOUR_ADDRESS
+```
+
+For testing with fake data:
+
+```bash
+python3 scripts/pnl_report.py \
+  --mock-file references/mock_positions.json \
+  --mock-prices references/mock_prices.json
+```
+
+### 11) Generate reports (daily or on-demand)
 
 ```bash
 python3 scripts/daily_report.py --account 0xYOUR_ADDRESS
